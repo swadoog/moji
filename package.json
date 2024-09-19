@@ -1,0 +1,36 @@
+{
+    "name": "radix",
+    "displayName": "radix",
+    "description": "a diff base",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.93.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "radix.helloWorld",
+                "title": "Hello World"
+            }
+        ]
+    },
+    "scripts": {
+        "lint": "eslint ."
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.93.0",
+        "@types/mocha": "^10.0.6",
+        "@types/node": "18.x",
+        "eslint": "^8.57.0",
+        "typescript": "^5.4.5",
+        "@vscode/test-cli": "^0.0.8",
+        "@vscode/test-electron": "^2.3.9"
+    }
+}
