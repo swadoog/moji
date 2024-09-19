@@ -1,56 +1,43 @@
-import * as VSCode from 'vscode';
+import * as VSCode from "vscode";
 
-/**
- * @param {VSCode.ExtensionContext} context
- */
 export function activate(context: VSCode.ExtensionContext) {
-    console.log('Activated extension');
+    const configuration = VSCode.workspace.getConfiguration("radix");
+    console.log("Loaded configuration:", configuration);
 
-    const configuration = VSCode.workspace.getConfiguration('radix');
-    console.log('Loaded configuration:', configuration);
-
-    let disposable = VSCode.commands.registerCommand("radix.startup", () => {
-        const panel = VSCode.window.createWebviewPanel(
-            "radix",
-            "Alpha",
-            VSCode.ViewColumn.One,
-            { enableScripts: true }
-        );
-
-        const onDiskPath = VSCode.Uri.file(
-            VSCode.Uri.joinPath(context.extensionUri, 'src', 'images', 'ascii_image.png').fsPath
-        );
-        const imgSrc = panel.webview.asWebviewUri(onDiskPath);
-
-        panel.webview.html = getWebviewContent(imgSrc as unknown as string);
-
-        panel.webview.onDidReceiveMessage(
-            message => {
-                if (message.command === 'alert') {
-                    VSCode.window.showInformationMessage(message.text);
-                }
-            },
-            undefined,
-            context.subscriptions
-        );
-    });
+    const registerRadixStartup = VSCode.commands.registerCommand("radix.startup", () => radixStartup(context));
 
     VSCode.commands.executeCommand("radix.startup");
-    context.subscriptions.push(disposable);
+    context.subscriptions.push(registerRadixStartup);
 }
 
-// function radixStartup() {
-    
-// }
-
 export function deactivate() {
-  // todo: check if this is the correct impl
-  const outputChannel = VSCode.window.createOutputChannel("Radix");
-  outputChannel.appendLine("Deactivated extension");
-  outputChannel.show();
+    // todo: check if this is the correct impl
+    const outputChannel = VSCode.window.createOutputChannel("Radix");
+    outputChannel.appendLine("Deactivated extension");
+    outputChannel.show();
+}
+
+function radixStartup(context: VSCode.ExtensionContext) {
+  const panel = VSCode.window.createWebviewPanel("radix", "Alpha", VSCode.ViewColumn.One, { enableScripts: true });
+
+  const onDiskPath = VSCode.Uri.file(VSCode.Uri.joinPath(context.extensionUri, "src", "images", "ascii_image.png").fsPath);
+  const imgSrc = panel.webview.asWebviewUri(onDiskPath);
+  panel.webview.html = getWebviewContent(imgSrc.toString());
+
+  panel.webview.onDidReceiveMessage(
+      (message) => {
+          if (message.command === "alert") {
+              VSCode.window.showInformationMessage(message.text);
+          }
+      },
+      undefined,
+      context.subscriptions
+  );
 }
 
 function getWebviewContent(imgSrc: string) {
+    console.log("IMAGE URL", imgSrc);
+
     return `
     <!DOCTYPE html>
     <html lang="en">
