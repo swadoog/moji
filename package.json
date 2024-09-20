@@ -1,6 +1,6 @@
 {
-    "name": "radix",
-    "displayName": "radix",
+    "name": "moji",
+    "displayName": "moji",
     "description": "a diff base",
     "version": "0.0.1",
     "engines": {
@@ -16,32 +16,32 @@
     "contributes": {
         "commands": [
             {
-                "command": "radix.startup",
-                "title": "Radix: Startup"
+                "command": "moji.startup",
+                "title": "moji: Startup"
             },
             {
-                "command": "radix.toggle",
-                "title": "Radix: Toggle"
+                "command": "moji.toggle",
+                "title": "moji: Toggle"
             }
         ],
         "configuration": {
-            "title": "Radix",
+            "title": "moji",
             "properties": {
-                "radix.enable": {
+                "moji.enable": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Enable/Disable Radix"
+                    "description": "Enable/Disable moji"
                 },
-                "radix.header": {
+                "moji.header": {
                     "type": "string",
-                    "default": "radix",
-                    "description": "Header to display in the Radix cockpit"
+                    "default": "moji",
+                    "description": "Header to display in the moji cockpit"
                 },
-                "radix.image": {
+                "moji.image": {
                     "type": "string",
-                    "description": "Image to display in the Radix cockpit"
+                    "description": "Image to display in the moji cockpit"
                 },
-                "radix.commands": {
+                "moji.commands": {
                     "type": "array",
                     "default": [
                         {
@@ -49,19 +49,19 @@
                             "command": "workbench.action.quit"
                         }
                     ],
-                    "description": "Startup commands for the Radix dashboard"
+                    "description": "Startup commands for the moji dashboard"
                 },
-                "radix.autostart": {
+                "moji.autostart": {
                     "type": "string",
                     "default": "emptyWorkspace",
                     "enum": [
                         "emptyWorkspace",
                         "always"
                     ],
-                    "description": "When to start Radix",
+                    "description": "When to start moji",
                     "enumDescriptions": [
-                        "Start Radix when opening an empty workspace",
-                        "Always start Radix"
+                        "Start moji when opening an empty workspace",
+                        "Always start moji"
                     ]
                 }
             }

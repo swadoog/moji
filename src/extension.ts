@@ -3,12 +3,12 @@ import * as VSCode from "vscode";
 type nil = undefined;
 
 const
-    DEFAULT_CONFIG_LOCATION = ".config/radix",
+    DEFAULT_CONFIG_LOCATION = ".config/moji",
     DEFAULT_COCKPIT_IMAGE   = "kanagawa.png"
 ;
 
 export function activate(context: VSCode.ExtensionContext): number {
-    const configuration = VSCode.workspace.getConfiguration("radix");
+    const configuration = VSCode.workspace.getConfiguration("moji");
     console.log("Loaded configuration:", configuration);
 
     if (!configuration.get("enable")) {
@@ -17,37 +17,38 @@ export function activate(context: VSCode.ExtensionContext): number {
     }
 
     const commandRegisters = [
-        VSCode.commands.registerCommand("radix.startup", () =>
-            radixStartup(context)
+        VSCode.commands.registerCommand("moji.startup", () =>
+            mojiStartup(context)
         ),
-        VSCode.commands.registerCommand("radix.toggle", () =>
-            radixToggle(configuration)
+        VSCode.commands.registerCommand("moji.toggle", () =>
+            mojiToggle(configuration)
         ),
     ];
     context.subscriptions.push(...commandRegisters);
 
-    if (!anyTextEditorOpen()) VSCode.commands.executeCommand("radix.startup");
+    if (!anyTextEditorOpen()) VSCode.commands.executeCommand("moji.startup");
 
     return 0;
 }
 
 export function deactivate(): number {
     // todo: check if this is the correct impl
-    const outputChannel = VSCode.window.createOutputChannel("Radix");
+    const outputChannel = VSCode.window.createOutputChannel("moji");
     outputChannel.appendLine("Deactivated extension.");
     outputChannel.show();
     return 0;
 }
 
-function radixStartup(context: VSCode.ExtensionContext): void {
+function mojiStartup(context: VSCode.ExtensionContext): void {
     const panel = VSCode.window.createWebviewPanel(
-        "radix",
-        "Alpha",
+        "moji",
+        "moji",
         VSCode.ViewColumn.One,
         { enableScripts: true }
     );
 
-    let imgSrc = getSetting("cockpitImage");
+    let imgSrc = getSetting("image");
+    console.log("! ~ mojiStartup ~ imgSrc:", imgSrc);
     let imgUri: string | nil;
     if (imgSrc) {
         const onDiskPath = VSCode.Uri.file(imgSrc);
@@ -66,7 +67,7 @@ function radixStartup(context: VSCode.ExtensionContext): void {
     );
 }
 
-function radixToggle(configuration: VSCode.WorkspaceConfiguration): void {
+function mojiToggle(configuration: VSCode.WorkspaceConfiguration): void {
     configuration.update("enable", !configuration.get("enable"), true);
 }
 
@@ -77,7 +78,7 @@ function anyTextEditorOpen(): boolean {
 }
 
 function getSetting<T = string>(key: string): T | nil {
-    return VSCode.workspace.getConfiguration("radix").get<T>(key);
+    return VSCode.workspace.getConfiguration("moji").get<T>(key);
 }
 
 function getWebviewContent(context: VSCode.ExtensionContext, panel: VSCode.WebviewPanel, imgSrc?: string): string {
@@ -94,7 +95,7 @@ function getWebviewContent(context: VSCode.ExtensionContext, panel: VSCode.Webvi
         <head>
             <meta charset="UTF-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>Radix</title>
+            <title>moji</title>
             <style>
                 body {
                     display: flex;
@@ -131,7 +132,7 @@ function getWebviewContent(context: VSCode.ExtensionContext, panel: VSCode.Webvi
                     if (event.key === "h") {
                         vscode.postMessage({
                             command: "alert",
-                            text: 'Radix: Help command not yet implemented.',
+                            text: 'moji: Help command not yet implemented.',
                         });
                     }
                 });

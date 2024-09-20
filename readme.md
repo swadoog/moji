@@ -1,2 +1,2 @@
-# 🐉 radix
-a dashboard inspired by alpha.nvim
+# 🐉 moji
+a dashboard plugin inspired by `alpha.nvim`
