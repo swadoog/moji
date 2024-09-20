@@ -1,8 +1,11 @@
 import * as VSCode from "vscode";
-import * as fs from 'fs';
-import * as path from 'path';
 
-const DEFAULT_COCKPIT_IMAGE = "asuka.png";
+type nil = undefined;
+
+const
+    DEFAULT_CONFIG_LOCATION = ".config/radix",
+    DEFAULT_COCKPIT_IMAGE   = "kanagawa.png"
+;
 
 export function activate(context: VSCode.ExtensionContext): number {
     const configuration = VSCode.workspace.getConfiguration("radix");
@@ -44,17 +47,14 @@ function radixStartup(context: VSCode.ExtensionContext): void {
         { enableScripts: true }
     );
 
-    const onDiskPath = VSCode.Uri.file(
-        VSCode.Uri.joinPath(
-            context.extensionUri,
-            "src",
-            "images",
-            VSCode.workspace.getConfiguration("radix").get("cockpitImage") || DEFAULT_COCKPIT_IMAGE
-        ).fsPath
-    );
-    const imgSrc = panel.webview.asWebviewUri(onDiskPath);
-    panel.webview.html = getWebviewContent(context, panel, imgSrc.toString());
-
+    let imgSrc = getSetting("cockpitImage");
+    let imgUri: string | nil;
+    if (imgSrc) {
+        const onDiskPath = VSCode.Uri.file(imgSrc);
+        imgUri = panel.webview.asWebviewUri(onDiskPath).toString();
+    }
+    
+    panel.webview.html = getWebviewContent(context, panel, imgUri);
     panel.webview.onDidReceiveMessage(
         (message) => {
             if (message.command === "alert") {
@@ -76,12 +76,18 @@ function anyTextEditorOpen(): boolean {
     );
 }
 
-function getHtmlFileContent(context: VSCode.ExtensionContext): string {
-    const htmlFilePath = path.join(context.extensionPath, 'src', 'radix.html');
-    return fs.readFileSync(htmlFilePath, 'utf8');
+function getSetting<T = string>(key: string): T | nil {
+    return VSCode.workspace.getConfiguration("radix").get<T>(key);
 }
 
-function getWebviewContent(context: VSCode.ExtensionContext, panel: VSCode.WebviewPanel, imgSrc: string): string {
+function getWebviewContent(context: VSCode.ExtensionContext, panel: VSCode.WebviewPanel, imgSrc?: string): string {
+    let header     = getSetting("header");
+    let imageHTML  = "";
+    let headerHTML = "";
+
+    if (imgSrc) imageHTML  = `<img src="${imgSrc}" alt="ASCII Image" id="asciiImage" />`;
+    if (header) headerHTML = `<h1>${header}</h1>`;
+
     return /*html*/`
     <!DOCTYPE html>
     <html lang="en">
@@ -110,9 +116,9 @@ function getWebviewContent(context: VSCode.ExtensionContext, panel: VSCode.Webvi
             </style>
         </head>
         <body>
-            <h1>Hello World</h1>
-            <img src="${imgSrc}" alt="ASCII Image" id="asciiImage" />
-            <button id="clickMe">Click me</button>
+            ${headerHTML}
+            ${imageHTML}
+            <p>Press <kbd>h</kbd> for help.</p>
             <script>
                 const vscode = acquireVsCodeApi();
                 const state = vscode.getState();
@@ -121,27 +127,13 @@ function getWebviewContent(context: VSCode.ExtensionContext, panel: VSCode.Webvi
                     const message = event.data;
                 });
 
-                document.getElementById("asciiImage").addEventListener("click", () => {
-                    vscode.postMessage({
-                        command: "alert",
-                        text: "You clicked the image!",
-                    });
-                });
-
                 document.addEventListener("keydown", (event) => {
                     if (event.key === "h") {
                         vscode.postMessage({
                             command: "alert",
-                            text: 'You pressed the "h" key!',
+                            text: 'Radix: Help command not yet implemented.',
                         });
                     }
-                });
-
-                document.getElementById("clickMe").addEventListener("click", () => {
-                    vscode.postMessage({
-                        command: "alert",
-                        text: "You clicked the button!",
-                    });
                 });
             </script>
         </body>

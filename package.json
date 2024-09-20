@@ -32,7 +32,12 @@
                     "default": true,
                     "description": "Enable/Disable Radix"
                 },
-                "radix.cockpitImage": {
+                "radix.header": {
+                    "type": "string",
+                    "default": "radix",
+                    "description": "Header to display in the Radix cockpit"
+                },
+                "radix.image": {
                     "type": "string",
                     "description": "Image to display in the Radix cockpit"
                 },
