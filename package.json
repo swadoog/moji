@@ -18,6 +18,10 @@
             {
                 "command": "radix.startup",
                 "title": "Radix: Startup"
+            },
+            {
+                "command": "radix.toggle",
+                "title": "Radix: Toggle"
             }
         ],
         "configuration": {
@@ -27,6 +31,10 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Enable/Disable Radix"
+                },
+                "radix.cockpitImage": {
+                    "type": "string",
+                    "description": "Image to display in the Radix cockpit"
                 },
                 "radix.commands": {
                     "type": "array",
