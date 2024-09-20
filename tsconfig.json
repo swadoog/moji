@@ -9,6 +9,14 @@
         "sourceMap": true,
         "rootDir": "src",
         "strict": true,
-        "noImplicitReturns": true
-    }
+        "noImplicitReturns": true,
+        "types": [
+            "node",
+            "vscode"
+        ]
+    },
+    "exclude": [
+        "node_modules",
+        "out"
+    ]
 }

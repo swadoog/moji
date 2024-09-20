@@ -19,7 +19,40 @@
                 "command": "radix.startup",
                 "title": "Radix: Startup"
             }
-        ]
+        ],
+        "configuration": {
+            "title": "Radix",
+            "properties": {
+                "radix.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable/Disable Radix"
+                },
+                "radix.commands": {
+                    "type": "array",
+                    "default": [
+                        {
+                            "title": "Quit VSCode",
+                            "command": "workbench.action.quit"
+                        }
+                    ],
+                    "description": "Startup commands for the Radix dashboard"
+                },
+                "radix.autostart": {
+                    "type": "string",
+                    "default": "emptyWorkspace",
+                    "enum": [
+                        "emptyWorkspace",
+                        "always"
+                    ],
+                    "description": "When to start Radix",
+                    "enumDescriptions": [
+                        "Start Radix when opening an empty workspace",
+                        "Always start Radix"
+                    ]
+                }
+            }
+        }
     },
     "scripts": {
         "compile": "tsc -p ./",

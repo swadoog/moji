@@ -1,20 +1,28 @@
 import * as VSCode from "vscode";
 
-export function activate(context: VSCode.ExtensionContext) {
+export function activate(context: VSCode.ExtensionContext): number {
     const configuration = VSCode.workspace.getConfiguration("radix");
     console.log("Loaded configuration:", configuration);
+
+    if (!configuration.get("enable")) {
+      console.log("Extension disabled; exiting.");
+      return 1;
+    }
 
     const registerRadixStartup = VSCode.commands.registerCommand("radix.startup", () => radixStartup(context));
 
     VSCode.commands.executeCommand("radix.startup");
     context.subscriptions.push(registerRadixStartup);
+
+    return 0;
 }
 
-export function deactivate() {
+export function deactivate(): number {
     // todo: check if this is the correct impl
     const outputChannel = VSCode.window.createOutputChannel("Radix");
-    outputChannel.appendLine("Deactivated extension");
+    outputChannel.appendLine("Deactivated extension.");
     outputChannel.show();
+    return 0;
 }
 
 function radixStartup(context: VSCode.ExtensionContext) {
