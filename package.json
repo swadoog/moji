@@ -39,6 +39,7 @@
                 },
                 "moji.image": {
                     "type": "string",
+                    "default": "kanagawa",
                     "description": "Image to display in the moji cockpit"
                 },
                 "moji.commands": {

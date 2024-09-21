@@ -3,12 +3,20 @@ import * as VSCode from "vscode";
 type nil = undefined;
 
 const
+    MOJI                    = "moji",
+    
     DEFAULT_CONFIG_LOCATION = ".config/moji",
-    DEFAULT_COCKPIT_IMAGE   = "kanagawa.png"
+    DEFAULT_COCKPIT_IMAGE   = "kanagawa.jpg",
+    IMAGES_LOCATION         = "src/images",
+
+    MOJI_IMAGE              = "image",
+    MOJI_HEADER             = "header",
+    MOJI_ENABLE             = "enable",
+    MOJI_CUSTOM_COMMANDS    = "commands"
 ;
 
 export function activate(context: VSCode.ExtensionContext): number {
-    const configuration = VSCode.workspace.getConfiguration("moji");
+    const configuration = VSCode.workspace.getConfiguration(MOJI);
     console.log("Loaded configuration:", configuration);
 
     if (!configuration.get("enable")) {
@@ -16,7 +24,7 @@ export function activate(context: VSCode.ExtensionContext): number {
         return 1;
     }
 
-    const commandRegisters = [
+    const extensionCommands = [
         VSCode.commands.registerCommand("moji.startup", () =>
             mojiStartup(context)
         ),
@@ -24,7 +32,7 @@ export function activate(context: VSCode.ExtensionContext): number {
             mojiToggle(configuration)
         ),
     ];
-    context.subscriptions.push(...commandRegisters);
+    context.subscriptions.push(...extensionCommands);
 
     if (!anyTextEditorOpen()) VSCode.commands.executeCommand("moji.startup");
 
@@ -33,7 +41,7 @@ export function activate(context: VSCode.ExtensionContext): number {
 
 export function deactivate(): number {
     // todo: check if this is the correct impl
-    const outputChannel = VSCode.window.createOutputChannel("moji");
+    const outputChannel = VSCode.window.createOutputChannel(MOJI);
     outputChannel.appendLine("Deactivated extension.");
     outputChannel.show();
     return 0;
@@ -41,15 +49,14 @@ export function deactivate(): number {
 
 function mojiStartup(context: VSCode.ExtensionContext): void {
     const panel = VSCode.window.createWebviewPanel(
-        "moji",
-        "moji",
-        VSCode.ViewColumn.One,
-        { enableScripts: true }
+        MOJI, MOJI, VSCode.ViewColumn.One, { enableScripts: true }
     );
 
-    let imgSrc = getSetting("image");
-    console.log("! ~ mojiStartup ~ imgSrc:", imgSrc);
+    let imgSrc = getExtSetting(MOJI_IMAGE);
     let imgUri: string | nil;
+    if (imgSrc == DEFAULT_COCKPIT_IMAGE) {
+        imgSrc = context.asAbsolutePath(`${IMAGES_LOCATION}/${DEFAULT_COCKPIT_IMAGE}`);
+    }
     if (imgSrc) {
         const onDiskPath = VSCode.Uri.file(imgSrc);
         imgUri = panel.webview.asWebviewUri(onDiskPath).toString();
@@ -68,51 +75,54 @@ function mojiStartup(context: VSCode.ExtensionContext): void {
 }
 
 function mojiToggle(configuration: VSCode.WorkspaceConfiguration): void {
-    configuration.update("enable", !configuration.get("enable"), true);
+    configuration.update(MOJI_ENABLE, !configuration.get(MOJI_ENABLE), true);
 }
 
 function anyTextEditorOpen(): boolean {
-    return VSCode.window.visibleTextEditors.some(
-        (editor) => editor.viewColumn !== undefined
-    );
+    return VSCode.window.visibleTextEditors.some(editor => editor.viewColumn !== undefined);
 }
 
-function getSetting<T = string>(key: string): T | nil {
-    return VSCode.workspace.getConfiguration("moji").get<T>(key);
+function getExtSetting<T = string>(key: string): T | nil {
+    return VSCode.workspace.getConfiguration(MOJI).get<T>(key);
 }
 
 function getWebviewContent(context: VSCode.ExtensionContext, panel: VSCode.WebviewPanel, imgSrc?: string): string {
-    let header     = getSetting("header");
-    let imageHTML  = "";
+    let header     = getExtSetting(MOJI_HEADER);
     let headerHTML = "";
+    let imageHTML  = "";
 
-    if (imgSrc) imageHTML  = `<img src="${imgSrc}" alt="ASCII Image" id="asciiImage" />`;
     if (header) headerHTML = `<h1>${header}</h1>`;
+    if (imgSrc) imageHTML  = `<img src="${imgSrc}" alt="ASCII Image" id="asciiImage" />`;
 
     return /*html*/`
     <!DOCTYPE html>
     <html lang="en">
         <head>
-            <meta charset="UTF-8" />
+                <meta charset="UTF-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             <title>moji</title>
             <style>
                 body {
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                    align-items: center;
-                    height: 100vh;
-                    margin: 0;
-                    background-color: #000;
-                    color: #fff;
-                    font-family: monospace;
-                    white-space: pre;
+                    display:          flex;
+                    flex-direction:   column;
+                    justify-content:  center;
+                    align-items:      center;
+                    height:           100vh;
+                    margin:           0;
+                    background-color: #1E1E1E;
+                    color:            #fff;
+                    font-family:      monospace;
+                    white-space:      pre;
                 }
                 img {
-                    margin-top: 20px;
-                    max-height: 50%;
-                    max-width: 70%;
+                    margin-top:    10px;
+                    margin-bottom: 10px;
+                    max-height:    50%;
+                    max-width:     70%;
+                }
+                h1 {
+                    margin-top:    10px;
+                    margin-bottom: 10px
                 }
             </style>
         </head>
