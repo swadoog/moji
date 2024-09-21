@@ -87,6 +87,8 @@ function getExtSetting<T = string>(key: string): T | nil {
 }
 
 function getWebviewContent(context: VSCode.ExtensionContext, panel: VSCode.WebviewPanel, imgSrc?: string): string {
+    // todo: load user fonts/colors
+
     let header     = getExtSetting(MOJI_HEADER);
     let headerHTML = "";
     let imageHTML  = "";
@@ -109,7 +111,7 @@ function getWebviewContent(context: VSCode.ExtensionContext, panel: VSCode.Webvi
                     align-items:      center;
                     height:           100vh;
                     margin:           0;
-                    background-color: #1E1E1E;
+                    background-color: #181818;
                     color:            #fff;
                     font-family:      monospace;
                     white-space:      pre;
