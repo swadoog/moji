@@ -46,8 +46,19 @@
                     "type": "array",
                     "default": [
                         {
-                            "title": "Quit VSCode",
+                            "key": "q",
+                            "title": "Quit",
                             "command": "workbench.action.quit"
+                        },
+                        {
+                            "key": "c",
+                            "title": "Close",
+                            "command": "workbench.action.closeWindow"
+                        },
+                        {
+                            "key": "r",
+                            "title": "Recent",
+                            "command": "workbench.action.openRecent"
                         }
                     ],
                     "description": "Startup commands for the moji dashboard"

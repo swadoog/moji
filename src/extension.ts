@@ -2,37 +2,45 @@ import * as VSCode from "vscode";
 
 type nil = undefined;
 
+type MojiCustomCommand = {
+    key: string;
+    title: string;
+    command: string;
+}
+
 const
-    MOJI                    = "moji",
+    MOJI    = "moji",
+    DEBUG   = true,
+    DEBUG_S = "moji>",
     
     DEFAULT_CONFIG_LOCATION = ".config/moji",
     DEFAULT_COCKPIT_IMAGE   = "kanagawa.jpg",
     IMAGES_LOCATION         = "src/images",
 
-    MOJI_IMAGE              = "image",
-    MOJI_HEADER             = "header",
-    MOJI_ENABLE             = "enable",
-    MOJI_CUSTOM_COMMANDS    = "commands"
+    MOJI_IMAGE           = "image",
+    MOJI_HEADER          = "header",
+    MOJI_ENABLE          = "enable",
+    MOJI_CUSTOM_COMMANDS = "commands"
 ;
 
 export function activate(context: VSCode.ExtensionContext): number {
     const configuration = VSCode.workspace.getConfiguration(MOJI);
-    console.log("Loaded configuration:", configuration);
+    mojiLog("Loaded configuration:", configuration);
+    validateConfig(configuration);
 
     if (!configuration.get("enable")) {
-        console.log("Extension disabled; exiting.");
+        mojiLog("Extension disabled; exiting.");
         return 1;
     }
 
-    const extensionCommands = [
+    context.subscriptions.push(
         VSCode.commands.registerCommand("moji.startup", () =>
             mojiStartup(context)
         ),
         VSCode.commands.registerCommand("moji.toggle", () =>
             mojiToggle(configuration)
         ),
-    ];
-    context.subscriptions.push(...extensionCommands);
+    );
 
     if (!anyTextEditorOpen()) VSCode.commands.executeCommand("moji.startup");
 
@@ -46,6 +54,8 @@ export function deactivate(): number {
     outputChannel.show();
     return 0;
 }
+
+// MARK: commands
 
 function mojiStartup(context: VSCode.ExtensionContext): void {
     const panel = VSCode.window.createWebviewPanel(
@@ -62,7 +72,7 @@ function mojiStartup(context: VSCode.ExtensionContext): void {
         imgUri = panel.webview.asWebviewUri(onDiskPath).toString();
     }
     
-    panel.webview.html = getWebviewContent(context, panel, imgUri);
+    panel.webview.html = configureMojiHTML(context, panel, imgUri);
     panel.webview.onDidReceiveMessage(
         (message) => {
             if (message.command === "alert") {
@@ -78,6 +88,32 @@ function mojiToggle(configuration: VSCode.WorkspaceConfiguration): void {
     configuration.update(MOJI_ENABLE, !configuration.get(MOJI_ENABLE), true);
 }
 
+function validateConfig(config: VSCode.WorkspaceConfiguration): void {
+    const
+        image    = config.get(MOJI_IMAGE),
+        header   = config.get(MOJI_HEADER),
+        commands = config.get<MojiCustomCommand[]>(MOJI_CUSTOM_COMMANDS)
+    ;
+
+    if (image && typeof image !== "string") {
+        throw new Error(`Expected ${MOJI_IMAGE} to be a string, but got ${typeof image}`);
+    }
+
+    if (header && typeof header !== "string") {
+        throw new Error(`Expected ${MOJI_HEADER} to be a string, but got ${typeof header}`);
+    }
+
+    if (commands && !Array.isArray(commands)) {
+        throw new Error(`Expected ${MOJI_CUSTOM_COMMANDS} to be an array, but got ${typeof commands}`);
+    }
+}
+
+// MARK: util
+
+function mojiLog(...args: any[]): void {
+    if (DEBUG) console.log(DEBUG_S, ...args);
+}
+
 function anyTextEditorOpen(): boolean {
     return VSCode.window.visibleTextEditors.some(editor => editor.viewColumn !== undefined);
 }
@@ -86,15 +122,61 @@ function getExtSetting<T = string>(key: string): T | nil {
     return VSCode.workspace.getConfiguration(MOJI).get<T>(key);
 }
 
-function getWebviewContent(context: VSCode.ExtensionContext, panel: VSCode.WebviewPanel, imgSrc?: string): string {
-    // todo: load user fonts/colors
+function setupCustomCommandListeners(context: VSCode.ExtensionContext): void {
+    throw "todo: setupCustomCommandListeners";
+}
 
-    let header     = getExtSetting(MOJI_HEADER);
-    let headerHTML = "";
-    let imageHTML  = "";
+function setupUserStyles() {
+    throw "todo: load user fonts/colors";
+}
+
+// MARK: html
+
+function configureCustomCommandsHTML(commands: MojiCustomCommand[]): string {
+    // todo: add icon support
+    let commandsHTML = "";
+
+    const containerStyle = `
+        display: flex; justify-content: center; align-items: center; flex-direction: column; width: 100%;
+        padding-top: 5px; padding-bottom: 5px;
+        margin-top: 15px;
+        gap: 15px;
+    `;
+
+    const commandStyle = `
+        display: flex; justify-content: space-between; width: 40%;
+    `;
+
+    const keyStyle = `
+        color: #ffdd33;
+    `;
+
+    commandsHTML += /*html*/`<div style="${containerStyle}">`;
+    for (const command of commands) {
+        commandsHTML += /*html*/`
+            <span style="${commandStyle}">
+                <span>${command.title}</span>
+                <span style="${keyStyle}">${command.key}</span>
+            </span>
+        `;
+    }
+    commandsHTML += /*html*/`</div>`;
+
+    return commandsHTML;
+}
+
+function configureMojiHTML(context: VSCode.ExtensionContext, panel: VSCode.WebviewPanel, imgSrc?: string): string {
+    let
+        header       = getExtSetting(MOJI_HEADER),
+        commands     = getExtSetting<MojiCustomCommand[]>(MOJI_CUSTOM_COMMANDS),
+        headerHTML   = "",
+        imageHTML    = "",
+        commandsHTML = ""
+    ;
 
     if (header) headerHTML = `<h1>${header}</h1>`;
     if (imgSrc) imageHTML  = `<img src="${imgSrc}" alt="ASCII Image" id="asciiImage" />`;
+    if (commands) commandsHTML = configureCustomCommandsHTML(commands);
 
     return /*html*/`
     <!DOCTYPE html>
@@ -115,23 +197,23 @@ function getWebviewContent(context: VSCode.ExtensionContext, panel: VSCode.Webvi
                     color:            #fff;
                     font-family:      monospace;
                     white-space:      pre;
+                    gap:              10px;
                 }
                 img {
-                    margin-top:    10px;
-                    margin-bottom: 10px;
+                    
                     max-height:    50%;
                     max-width:     70%;
                 }
                 h1 {
-                    margin-top:    10px;
-                    margin-bottom: 10px
+                    margin-top:    0;
+                    margin-bottom: 0;
                 }
             </style>
         </head>
         <body>
             ${headerHTML}
             ${imageHTML}
-            <p>Press <kbd>h</kbd> for help.</p>
+            ${commandsHTML}
             <script>
                 const vscode = acquireVsCodeApi();
                 const state = vscode.getState();
