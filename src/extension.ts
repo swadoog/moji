@@ -7,7 +7,7 @@ type nil = undefined;
 type MojiCommand = {
     key: string;
     title: string;
-    command: string;
+    exe: string;
 }
 
 const
@@ -94,12 +94,7 @@ function mojiStartup(context: VSCode.ExtensionContext): VSCode.WebviewPanel {
         context.subscriptions
     );
 
-    panel.webview.postMessage({
-        type: HTML_MESSAGE_COMMANDS,
-        commands: getExtSetting<MojiCommand[]>(MOJI_COMMANDS)
-    })
-
-    TODO("add keybind setup using keybindings.json");
+    TODO("Add keybind setup using keybindings.json");
 
     return panel;
 }
@@ -110,7 +105,7 @@ function mojiToggle(configuration: VSCode.WorkspaceConfiguration): void {
 
 // MARK: util
 
-async function setGlobalKeybinding(key: string, command: string, when: string): Promise<void> {
+async function setGlobalKeybinding(command: MojiCommand): Promise<void> {
     // todo: set this up
 
     const keybindingsPath = path.join(
@@ -128,9 +123,15 @@ async function setGlobalKeybinding(key: string, command: string, when: string): 
 
     // Modify keybindings
     keybindings.push({
-        key: key,
-        command: command,
-        when: `activeWebviewPanelId == '${MOJI}'`
+        key: command.key,
+        command: "runCommands",
+        when: `activeWebviewPanelId == '${MOJI}'`,
+        args: {
+            commands: [
+                command.exe,
+                "workbench.action.closeActiveEditor"
+            ]
+        }
     });
 
     // Write updated keybindings
@@ -253,8 +254,8 @@ function configureMojiHTML(context: VSCode.ExtensionContext, panel: VSCode.Webvi
                     gap:              10px;
                 }
                 img {
-                    max-height:    50%;
-                    max-width:     70%;
+                    max-height: 50%;
+                    max-width:  70%;
                 }
                 h1 {
                     margin-top:    0;

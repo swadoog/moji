@@ -48,17 +48,17 @@
                         {
                             "key": "q",
                             "title": "Quit",
-                            "command": "workbench.action.quit"
+                            "exe": "workbench.action.quit"
                         },
                         {
                             "key": "c",
                             "title": "Close",
-                            "command": "workbench.action.closeWindow"
+                            "exe": "workbench.action.closeWindow"
                         },
                         {
                             "key": "r",
                             "title": "Recent",
-                            "command": "workbench.action.openRecent"
+                            "exe": "workbench.action.openRecent"
                         }
                     ],
                     "description": "Startup commands for the moji dashboard"
