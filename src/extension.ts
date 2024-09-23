@@ -1,8 +1,10 @@
 import * as VSCode from "vscode";
+import * as fs from 'fs';
+import * as path from 'path';
 
 type nil = undefined;
 
-type MojiCustomCommand = {
+type MojiCommand = {
     key: string;
     title: string;
     command: string;
@@ -17,19 +19,22 @@ const
     DEFAULT_COCKPIT_IMAGE   = "kanagawa.jpg",
     IMAGES_LOCATION         = "src/images",
 
-    MOJI_IMAGE           = "image",
-    MOJI_HEADER          = "header",
-    MOJI_ENABLE          = "enable",
-    MOJI_CUSTOM_COMMANDS = "commands"
+    MOJI_IMAGE    = "image",
+    MOJI_HEADER   = "header",
+    MOJI_ENABLE   = "enable",
+    MOJI_COMMANDS = "commands",
+    MOJI_FONT     = "font",
+
+    HTML_MESSAGE_COMMANDS = "MOJI_COMMAND"
 ;
 
 export function activate(context: VSCode.ExtensionContext): number {
     const configuration = VSCode.workspace.getConfiguration(MOJI);
-    mojiLog("Loaded configuration:", configuration);
+    LOG("Loaded configuration:", configuration);
     validateConfig(configuration);
 
     if (!configuration.get("enable")) {
-        mojiLog("Extension disabled; exiting.");
+        LOG("Extension disabled; exiting.");
         return 1;
     }
 
@@ -55,11 +60,15 @@ export function deactivate(): number {
     return 0;
 }
 
-// MARK: commands
+// MARK: ext commands
 
-function mojiStartup(context: VSCode.ExtensionContext): void {
+function mojiStartup(context: VSCode.ExtensionContext): VSCode.WebviewPanel {
     const panel = VSCode.window.createWebviewPanel(
-        MOJI, MOJI, VSCode.ViewColumn.One, { enableScripts: true }
+        MOJI, MOJI, VSCode.ViewColumn.One,
+        {
+            enableScripts: true,
+            retainContextWhenHidden: true,
+        }
     );
 
     let imgSrc = getExtSetting(MOJI_IMAGE);
@@ -73,26 +82,67 @@ function mojiStartup(context: VSCode.ExtensionContext): void {
     }
     
     panel.webview.html = configureMojiHTML(context, panel, imgUri);
+    
     panel.webview.onDidReceiveMessage(
         (message) => {
-            if (message.command === "alert") {
-                VSCode.window.showInformationMessage(message.text);
+            switch (message.type) {
+                default:
+                    LOG("Received unknown message:", message);
             }
         },
         undefined,
         context.subscriptions
     );
+
+    panel.webview.postMessage({
+        type: HTML_MESSAGE_COMMANDS,
+        commands: getExtSetting<MojiCommand[]>(MOJI_COMMANDS)
+    })
+
+    TODO("add keybind setup using keybindings.json");
+
+    return panel;
 }
 
 function mojiToggle(configuration: VSCode.WorkspaceConfiguration): void {
     configuration.update(MOJI_ENABLE, !configuration.get(MOJI_ENABLE), true);
 }
 
+// MARK: util
+
+async function setGlobalKeybinding(key: string, command: string, when: string): Promise<void> {
+    // todo: set this up
+
+    const keybindingsPath = path.join(
+        VSCode.env.appRoot,
+        'User',
+        'keybindings.json'
+    );
+
+    // Read existing keybindings
+    let keybindings = [];
+    if (fs.existsSync(keybindingsPath)) {
+        const keybindingsContent = fs.readFileSync(keybindingsPath, 'utf-8');
+        keybindings = JSON.parse(keybindingsContent);
+    }
+
+    // Modify keybindings
+    keybindings.push({
+        key: key,
+        command: command,
+        when: `activeWebviewPanelId == '${MOJI}'`
+    });
+
+    // Write updated keybindings
+    fs.writeFileSync(keybindingsPath, JSON.stringify(keybindings, null, 2));
+    VSCode.window.showInformationMessage('Keybinding updated!');
+}
+
 function validateConfig(config: VSCode.WorkspaceConfiguration): void {
     const
         image    = config.get(MOJI_IMAGE),
         header   = config.get(MOJI_HEADER),
-        commands = config.get<MojiCustomCommand[]>(MOJI_CUSTOM_COMMANDS)
+        commands = config.get<MojiCommand[]>(MOJI_COMMANDS)
     ;
 
     if (image && typeof image !== "string") {
@@ -104,14 +154,16 @@ function validateConfig(config: VSCode.WorkspaceConfiguration): void {
     }
 
     if (commands && !Array.isArray(commands)) {
-        throw new Error(`Expected ${MOJI_CUSTOM_COMMANDS} to be an array, but got ${typeof commands}`);
+        throw new Error(`Expected ${MOJI_COMMANDS} to be an array, but got ${typeof commands}`);
     }
 }
 
-// MARK: util
-
-function mojiLog(...args: any[]): void {
+function LOG(...args: any[]): void {
     if (DEBUG) console.log(DEBUG_S, ...args);
+}
+
+function TODO(...args: any[]): void {
+    console.warn(`${DEBUG_S}todo>`, ...args);
 }
 
 function anyTextEditorOpen(): boolean {
@@ -132,7 +184,7 @@ function setupUserStyles() {
 
 // MARK: html
 
-function configureCustomCommandsHTML(commands: MojiCustomCommand[]): string {
+function configureCustomCommandsHTML(commands: MojiCommand[]): string {
     // todo: add icon support
     let commandsHTML = "";
 
@@ -144,7 +196,7 @@ function configureCustomCommandsHTML(commands: MojiCustomCommand[]): string {
     `;
 
     const commandStyle = `
-        display: flex; justify-content: space-between; width: 40%;
+        display: flex; justify-content: space-between; width: 34%;
     `;
 
     const keyStyle = `
@@ -168,7 +220,8 @@ function configureCustomCommandsHTML(commands: MojiCustomCommand[]): string {
 function configureMojiHTML(context: VSCode.ExtensionContext, panel: VSCode.WebviewPanel, imgSrc?: string): string {
     let
         header       = getExtSetting(MOJI_HEADER),
-        commands     = getExtSetting<MojiCustomCommand[]>(MOJI_CUSTOM_COMMANDS),
+        commands     = getExtSetting<MojiCommand[]>(MOJI_COMMANDS),
+        font         = getExtSetting(MOJI_FONT),
         headerHTML   = "",
         imageHTML    = "",
         commandsHTML = ""
@@ -177,7 +230,7 @@ function configureMojiHTML(context: VSCode.ExtensionContext, panel: VSCode.Webvi
     if (header) headerHTML = `<h1>${header}</h1>`;
     if (imgSrc) imageHTML  = `<img src="${imgSrc}" alt="ASCII Image" id="asciiImage" />`;
     if (commands) commandsHTML = configureCustomCommandsHTML(commands);
-
+    
     return /*html*/`
     <!DOCTYPE html>
     <html lang="en">
@@ -195,12 +248,11 @@ function configureMojiHTML(context: VSCode.ExtensionContext, panel: VSCode.Webvi
                     margin:           0;
                     background-color: #181818;
                     color:            #fff;
-                    font-family:      monospace;
+                    font-family:      ${font};
                     white-space:      pre;
                     gap:              10px;
                 }
                 img {
-                    
                     max-height:    50%;
                     max-width:     70%;
                 }

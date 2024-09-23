@@ -75,6 +75,11 @@
                         "Start moji when opening an empty workspace",
                         "Always start moji"
                     ]
+                },
+                "moji.font": {
+                    "type": "string",
+                    "default": "monospace",
+                    "description": "Font to use in the moji cockpit. You must set this if you would like to use nerd icons"
                 }
             }
         }
