@@ -10,14 +10,27 @@ type MojiCommand = {
     exe: string;
 }
 
+type VSCodeKeybinding = {
+    key: string;
+    command: string;
+    when?: string;
+    args?: {
+        commands: { command: string, args?: any }[];
+    }
+}
+
+type KBConfig = {
+    getKeybindings: () => VSCodeKeybinding[];
+    setKeybindings: (keybindings: VSCodeKeybinding[]) => void;
+}
+
 const
     MOJI    = "moji",
     DEBUG   = true,
     DEBUG_S = "moji>",
     
-    DEFAULT_CONFIG_LOCATION = ".config/moji",
-    DEFAULT_COCKPIT_IMAGE   = "kanagawa.jpg",
-    IMAGES_LOCATION         = "src/images",
+    DEFAULT_COCKPIT_IMAGE = "kanagawa.jpg",
+    IMAGES_LOCATION       = "src/images",
 
     MOJI_IMAGE    = "image",
     MOJI_HEADER   = "header",
@@ -25,7 +38,7 @@ const
     MOJI_COMMANDS = "commands",
     MOJI_FONT     = "font",
 
-    HTML_MESSAGE_COMMANDS = "MOJI_COMMAND"
+    MOJI_WHEN = "activeWebviewPanelId == 'moji'"
 ;
 
 export function activate(context: VSCode.ExtensionContext): number {
@@ -47,6 +60,7 @@ export function activate(context: VSCode.ExtensionContext): number {
         ),
     );
 
+    configureKeybindings(context);
     if (!anyTextEditorOpen()) VSCode.commands.executeCommand("moji.startup");
 
     return 0;
@@ -63,12 +77,11 @@ export function deactivate(): number {
 // MARK: ext commands
 
 function mojiStartup(context: VSCode.ExtensionContext): VSCode.WebviewPanel {
+    TODO("Move webview panel creation to activate function.");
+
     const panel = VSCode.window.createWebviewPanel(
         MOJI, MOJI, VSCode.ViewColumn.One,
-        {
-            enableScripts: true,
-            retainContextWhenHidden: true,
-        }
+        { enableScripts: true, retainContextWhenHidden: true }
     );
 
     let imgSrc = getExtSetting(MOJI_IMAGE);
@@ -82,19 +95,10 @@ function mojiStartup(context: VSCode.ExtensionContext): VSCode.WebviewPanel {
     }
     
     panel.webview.html = configureMojiHTML(context, panel, imgUri);
-    
-    panel.webview.onDidReceiveMessage(
-        (message) => {
-            switch (message.type) {
-                default:
-                    LOG("Received unknown message:", message);
-            }
-        },
-        undefined,
-        context.subscriptions
+    panel.onDidChangeViewState(
+        e => { if (!e.webviewPanel.active) panel.dispose() },
+        null, context.subscriptions
     );
-
-    TODO("Add keybind setup using keybindings.json");
 
     return panel;
 }
@@ -104,40 +108,6 @@ function mojiToggle(configuration: VSCode.WorkspaceConfiguration): void {
 }
 
 // MARK: util
-
-async function setGlobalKeybinding(command: MojiCommand): Promise<void> {
-    // todo: set this up
-
-    const keybindingsPath = path.join(
-        VSCode.env.appRoot,
-        'User',
-        'keybindings.json'
-    );
-
-    // Read existing keybindings
-    let keybindings = [];
-    if (fs.existsSync(keybindingsPath)) {
-        const keybindingsContent = fs.readFileSync(keybindingsPath, 'utf-8');
-        keybindings = JSON.parse(keybindingsContent);
-    }
-
-    // Modify keybindings
-    keybindings.push({
-        key: command.key,
-        command: "runCommands",
-        when: `activeWebviewPanelId == '${MOJI}'`,
-        args: {
-            commands: [
-                command.exe,
-                "workbench.action.closeActiveEditor"
-            ]
-        }
-    });
-
-    // Write updated keybindings
-    fs.writeFileSync(keybindingsPath, JSON.stringify(keybindings, null, 2));
-    VSCode.window.showInformationMessage('Keybinding updated!');
-}
 
 function validateConfig(config: VSCode.WorkspaceConfiguration): void {
     const
@@ -160,11 +130,13 @@ function validateConfig(config: VSCode.WorkspaceConfiguration): void {
 }
 
 function LOG(...args: any[]): void {
-    if (DEBUG) console.log(DEBUG_S, ...args);
+    const callerName = (new Error().stack?.split('\n')[2].trim().split(' ')[1]) || "unknown";
+    if (DEBUG) console.log(`${MOJI}(${callerName})>`, ...args);
 }
 
 function TODO(...args: any[]): void {
-    console.warn(`${DEBUG_S}todo>`, ...args);
+    const callerName = (new Error().stack?.split('\n')[2].trim().split(' ')[1]) || "unknown";
+    console.warn(`${DEBUG_S}todo(${callerName})>`, ...args);
 }
 
 function anyTextEditorOpen(): boolean {
@@ -175,12 +147,78 @@ function getExtSetting<T = string>(key: string): T | nil {
     return VSCode.workspace.getConfiguration(MOJI).get<T>(key);
 }
 
-function setupCustomCommandListeners(context: VSCode.ExtensionContext): void {
-    throw "todo: setupCustomCommandListeners";
-}
-
 function setupUserStyles() {
     throw "todo: load user fonts/colors";
+}
+
+// MARK: keybindings
+
+function configureKeybindings(context: VSCode.ExtensionContext): void {
+    TODO("Add support for cleanup of no longer used keybindings.");
+    TODO("Add support for more complex keybinding configurations.");
+
+    const commands = getExtSetting<MojiCommand[]>(MOJI_COMMANDS);
+    const kbconfig = KBConfig();
+    let keybindings: VSCodeKeybinding[] = [];
+
+    if (!kbconfig) return LOG("Error loading keybindings; skipping keybinding setup.");
+    if (!commands || commands.length === 0) return LOG("No custom commands found; skipping keybinding setup.");
+    keybindings = kbconfig.getKeybindings();
+
+    for (const command of commands) {
+        const existing = keybindings.find(cmd =>
+            cmd.when === MOJI_WHEN
+            && cmd.key === command.key
+            && cmd.args?.commands[0].command === command.exe
+        );
+
+        if (existing) {
+            LOG(`Keybinding for ${command.key} already exists; skipping.`);
+            continue;
+        }
+
+        keybindings.push({
+            key: command.key,
+            when: `activeWebviewPanelId == '${MOJI}'`,
+            command: command.exe,
+        });
+    }
+
+    kbconfig.setKeybindings(keybindings);
+    LOG("Keybindings successfully configured.");
+}
+
+function KBConfig(): KBConfig | nil {
+    let keybindingsPath: string;
+    let keybindings: VSCodeKeybinding[] = [];
+
+    if (process.platform === "win32") {
+        keybindingsPath = path.join(process.env.APPDATA as string, "Code/User/keybindings.json");
+    } else if (process.platform === "darwin") {
+        keybindingsPath = path.join(process.env.HOME as string, "Library/Application Support/Code/User/keybindings.json");
+    } else {
+        keybindingsPath = path.join(process.env.HOME as string, ".config/Code/User/keybindings.json");
+    }
+
+    if (fs.existsSync(keybindingsPath)) {
+        const keybindingsContent = fs.readFileSync(keybindingsPath, 'utf-8');
+        try {
+            keybindings = JSON.parse(keybindingsContent.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, ''))
+        } catch (e) {
+            LOG("Error parsing keybindings file:", e);
+            return undefined;
+        }
+    } else {
+        LOG("No keybindings file found; creating new one.");
+        fs.writeFileSync(keybindingsPath, "[]");
+    }
+
+    return {
+        getKeybindings: () => keybindings,
+        setKeybindings: (newKeybindings) => {
+            fs.writeFileSync(keybindingsPath, JSON.stringify(newKeybindings, null, 2));
+        }
+    };
 }
 
 // MARK: html
